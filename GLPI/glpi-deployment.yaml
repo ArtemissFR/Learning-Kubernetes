@@ -1,0 +1,56 @@
+# glpi-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glpi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: glpi
+  template:
+    metadata:
+      labels:
+        app: glpi
+    spec:
+      containers:
+      - name: glpi
+        image: glpi/glpi:10.0.7
+        env:
+        - name: MYSQL_HOST
+          value: "mysql"  # Le nom du service MySQL
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_DATABASE
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: glpi-storage
+          mountPath: /var/www/html
+      volumes:
+      - name: glpi-storage
+        persistentVolumeClaim:
+          claimName: glpi-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: glpi-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
